@@ -253,9 +253,49 @@ async function eliminarcamper() {
     }
 }
 
+// ===== USUARIOS Y ROLES =====
+const usuarios = [
+    { usuario: 'admin', password: 'admin123', rol: 'Administrador' },
+    { usuario: 'trainer', password: 'trainer123', rol: 'Trainer' },
+    { usuario: 'estudiante', password: 'estudiante123', rol: 'Estudiante' }
+];
+
+let usuarioActual = null;
+
+// ===== FUNCIÓN DE LOGIN =====
+async function login() {
+    console.log('\n=== INICIO DE SESIÓN ===');
+    const usuario = await pregunta('Usuario: ');
+    const password = await pregunta('Contraseña: ');
+
+    const encontrado = usuarios.find(u => u.usuario === usuario && u.password === password);
+
+    if (encontrado) {
+        usuarioActual = encontrado;
+        console.log(`\n✅ ¡Bienvenido, ${usuarioActual.usuario}! Rol: ${usuarioActual.rol}`);
+        return true;
+    } else {
+        console.log('❌ Usuario o contraseña incorrectos');
+        return false;
+    }
+}
+
 // ===== FUNCIÓN PRINCIPAL DEL MENÚ =====
 async function iniciarPrograma() {
     console.log('🚀 Iniciando CRUD de campers...');
+
+    // LOGIN DE USUARIO
+    let logueado = false;
+    while (!logueado) {
+        logueado = await login();
+        if (!logueado) {
+            const intentar = await pregunta('¿Intentar de nuevo? (S/N): ');
+            if (intentar.trim().toUpperCase() !== 'S') {
+                rl.close();
+                process.exit(0);
+            }
+        }
+    }
 
     // Intentar conectar a MongoDB
     const conectado = await conectarDB();
@@ -291,30 +331,37 @@ async function iniciarPrograma() {
         mostrarMenu();
         const opcion = await pregunta('👉 Selecciona una opción (1-6): ');
 
-        switch (opcion.trim()) {
-            case '1':
-                await crearcamper();
-                break;
-            case '2':
-                await verTodoscampers();
-                break;
-            case '3':
-                await buscarcamperPorId();
-                break;
-            case '4':
-                await actualizarcamper();
-                break;
-            case '5':
-                await eliminarcamper();
-                break;
-            case '6':
-                console.log('\n👋 ¡Gracias por usar el CRUD de campers!');
-                console.log('🚪 Cerrando programa...');
-                rl.close();
-                process.exit(0);
-                break;
-            default:
-                console.log('❌ Opción no válida. Por favor elige un número del 1 al 6.');
+        // Restricción de opciones según rol
+        if (usuarioActual.rol === 'Estudiante' && opcion.trim() !== '2' && opcion.trim() !== '3' && opcion.trim() !== '6') {
+            console.log('❌ No tienes permisos para esa opción.');
+        } else if (usuarioActual.rol === 'Trainer' && opcion.trim() === '5') {
+            console.log('❌ No tienes permisos para eliminar campers.');
+        } else {
+            switch (opcion.trim()) {
+                case '1':
+                    await crearcamper();
+                    break;
+                case '2':
+                    await verTodoscampers();
+                    break;
+                case '3':
+                    await buscarcamperPorId();
+                    break;
+                case '4':
+                    await actualizarcamper();
+                    break;
+                case '5':
+                    await eliminarcamper();
+                    break;
+                case '6':
+                    console.log('\n👋 ¡Gracias por usar el CRUD de campers!');
+                    console.log('🚪 Cerrando programa...');
+                    rl.close();
+                    process.exit(0);
+                    break;
+                default:
+                    console.log('❌ Opción no válida. Por favor elige un número del 1 al 6.');
+            }
         }
 
         await pregunta('\n⏸️ Presiona Enter para continuar...');
