@@ -1,0 +1,363 @@
+# Principios SOLID en Node.js
+
+Los principios SOLID son cinco principios fundamentales del diseño orientado a objetos que ayudan a crear código más mantenible, flexible y extensible. Te explico cada uno con ejemplos en Node.js:
+
+## 1. Single Responsibility Principle (SRP)
+Una clase debe tener una sola razón para cambiar, es decir, una sola responsabilidad.
+
+### ❌ Violando SRP:
+```javascript
+class User {
+  constructor(name, email) {
+    this.name = name;
+    this.email = email;
+  }
+
+  // Responsabilidad 1: Validar datos
+  validate() {
+    return this.email.includes('@');
+  }
+
+  // Responsabilidad 2: Persistencia en base de datos
+  save() {
+    // Lógica para guardar en DB
+    console.log('Guardando usuario en DB');
+  }
+
+  // Responsabilidad 3: Enviar emails
+  sendWelcomeEmail() {
+    console.log(`Enviando email a ${this.email}`);
+  }
+}
+```
+
+### ✅ Aplicando SRP:
+```javascript
+class User {
+  constructor(name, email) {
+    this.name = name;
+    this.email = email;
+  }
+}
+
+class UserValidator {
+  static validate(user) {
+    return user.email.includes('@');
+  }
+}
+
+class UserRepository {
+  static save(user) {
+    console.log('Guardando usuario en DB');
+  }
+}
+
+class EmailService {
+  static sendWelcomeEmail(user) {
+    console.log(`Enviando email a ${user.email}`);
+  }
+}
+```
+
+## 2. Open/Closed Principle (OCP)
+Las entidades deben estar abiertas para extensión pero cerradas para modificación.
+
+### ✅ Aplicando OCP:
+```javascript
+// Clase base cerrada para modificación
+class PaymentProcessor {
+  process(amount) {
+    throw new Error('Method must be implemented');
+  }
+}
+
+// Abierta para extensión
+class CreditCardProcessor extends PaymentProcessor {
+  process(amount) {
+    console.log(`Procesando ${amount} con tarjeta de crédito`);
+  }
+}
+
+class PayPalProcessor extends PaymentProcessor {
+  process(amount) {
+    console.log(`Procesando ${amount} con PayPal`);
+  }
+}
+
+// Agregar nuevos procesadores sin modificar código existente
+class CryptoProcessor extends PaymentProcessor {
+  process(amount) {
+    console.log(`Procesando ${amount} con criptomonedas`);
+  }
+}
+```
+
+## 3. Liskov Substitution Principle (LSP)
+Los objetos de una superclase deben ser reemplazables por objetos de sus subclases sin alterar el funcionamiento del programa.
+
+### ❌ Violando LSP:
+```javascript
+class Bird {
+  fly() {
+    console.log('Volando');
+  }
+}
+
+class Penguin extends Bird {
+  fly() {
+    throw new Error('Los pingüinos no pueden volar'); // Rompe LSP
+  }
+}
+```
+
+### ✅ Aplicando LSP:
+```javascript
+class Bird {
+  move() {
+    console.log('Moviéndose');
+  }
+}
+
+class FlyingBird extends Bird {
+  fly() {
+    console.log('Volando');
+  }
+  
+  move() {
+    this.fly();
+  }
+}
+
+class SwimmingBird extends Bird {
+  swim() {
+    console.log('Nadando');
+  }
+  
+  move() {
+    this.swim();
+  }
+}
+
+class Eagle extends FlyingBird {}
+class Penguin extends SwimmingBird {}
+```
+
+## 4. Interface Segregation Principle (ISP)
+Los clientes no deben depender de interfaces que no usan. Es mejor tener muchas interfaces específicas que una general.
+
+### ❌ Violando ISP:
+```javascript
+class MultiFunctionDevice {
+  print() {}
+  scan() {}
+  fax() {}
+}
+
+// Una impresora simple se ve obligada a implementar métodos que no necesita
+class SimplePrinter extends MultiFunctionDevice {
+  print() {
+    console.log('Imprimiendo');
+  }
+  
+  scan() {
+    throw new Error('No soportado');
+  }
+  
+  fax() {
+    throw new Error('No soportado');
+  }
+}
+```
+
+### ✅ Aplicando ISP:
+```javascript
+// Interfaces segregadas (usando composición en lugar de herencia múltiple)
+class Printer {
+  print() {
+    throw new Error('Method must be implemented');
+  }
+}
+
+class Scanner {
+  scan() {
+    throw new Error('Method must be implemented');
+  }
+}
+
+class FaxMachine {
+  fax() {
+    throw new Error('Method must be implemented');
+  }
+}
+
+// Implementaciones específicas
+class SimplePrinter extends Printer {
+  print() {
+    console.log('Imprimiendo');
+  }
+}
+
+class MultiFunctionPrinter {
+  constructor() {
+    this.printer = new SimplePrinter();
+    this.scanner = new DocumentScanner();
+    this.faxMachine = new NetworkFax();
+  }
+}
+```
+
+## 5. Dependency Inversion Principle (DIP)
+Los módulos de alto nivel no deben depender de módulos de bajo nivel. Ambos deben depender de abstracciones.
+
+### ❌ Violando DIP:
+```javascript
+class MySQLDatabase {
+  save(data) {
+    console.log('Guardando en MySQL');
+  }
+}
+
+class UserService {
+  constructor() {
+    this.database = new MySQLDatabase(); // Dependencia directa
+  }
+
+  createUser(userData) {
+    this.database.save(userData);
+  }
+}
+```
+
+### ✅ Aplicando DIP:
+```javascript
+// Abstracción
+class Database {
+  save(data) {
+    throw new Error('Method must be implemented');
+  }
+}
+
+// Implementaciones concretas
+class MySQLDatabase extends Database {
+  save(data) {
+    console.log('Guardando en MySQL');
+  }
+}
+
+class MongoDatabase extends Database {
+  save(data) {
+    console.log('Guardando en MongoDB');
+  }
+}
+
+// Servicio de alto nivel depende de la abstracción
+class UserService {
+  constructor(database) {
+    this.database = database; // Inyección de dependencia
+  }
+
+  createUser(userData) {
+    this.database.save(userData);
+  }
+}
+
+// Uso
+const mysqlDB = new MySQLDatabase();
+const userService = new UserService(mysqlDB);
+```
+
+## Ejemplo práctico completo en Node.js
+
+```javascript
+// Aplicando todos los principios SOLID
+const express = require('express');
+
+// SRP: Cada clase tiene una responsabilidad
+class User {
+  constructor(id, name, email) {
+    this.id = id;
+    this.name = name;
+    this.email = email;
+  }
+}
+
+// DIP: Abstracción para repository
+class UserRepository {
+  async findById(id) {
+    throw new Error('Method must be implemented');
+  }
+  
+  async save(user) {
+    throw new Error('Method must be implemented');
+  }
+}
+
+// Implementación concreta
+class MongoUserRepository extends UserRepository {
+  async findById(id) {
+    // Lógica de MongoDB
+    return new User(id, 'John', 'john@example.com');
+  }
+  
+  async save(user) {
+    console.log('Guardando en MongoDB');
+  }
+}
+
+// SRP: Servicio solo maneja lógica de negocio
+class UserService {
+  constructor(userRepository) {
+    this.userRepository = userRepository;
+  }
+
+  async getUser(id) {
+    return await this.userRepository.findById(id);
+  }
+
+  async createUser(userData) {
+    const user = new User(null, userData.name, userData.email);
+    return await this.userRepository.save(user);
+  }
+}
+
+// SRP: Controlador solo maneja HTTP
+class UserController {
+  constructor(userService) {
+    this.userService = userService;
+  }
+
+  async getUser(req, res) {
+    try {
+      const user = await this.userService.getUser(req.params.id);
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+}
+
+// Composición y configuración
+const userRepository = new MongoUserRepository();
+const userService = new UserService(userRepository);
+const userController = new UserController(userService);
+```
+
+## Resumen de Beneficios
+
+### Al aplicar SOLID obtienes:
+
+- **Código más mantenible**: Cambios en una parte del sistema no afectan otras partes
+- **Mayor testabilidad**: Cada componente puede ser probado de forma independiente
+- **Flexibilidad**: Fácil agregar nuevas funcionalidades sin modificar código existente
+- **Reutilización**: Componentes pueden ser reutilizados en diferentes contextos
+- **Menor acoplamiento**: Dependencias débiles entre componentes
+
+### Consejos para implementar SOLID:
+
+1. **Aplica gradualmente**: No trates de refactorizar todo de una vez
+2. **Piensa en responsabilidades**: Pregúntate "¿cuántas razones tiene esta clase para cambiar?"
+3. **Usa inyección de dependencias**: Facilita el testing y la flexibilidad
+4. **Prefiere composición sobre herencia**: Es más flexible y mantenible
+5. **Escribe tests**: Te ayudan a identificar violaciones de los principios
+
+Estos principios te ayudan a escribir código más modular, testeable y mantenible en Node.js. La clave está en aplicarlos gradualmente y cuando realmente aporten valor, sin over-engineering.
